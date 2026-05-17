@@ -10,7 +10,7 @@ import { useAuth } from '@/components/AuthProvider';
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { user, login, logout, xp, level, loading } = useAuth() as any;
+  const { user, signInWithGoogle, logout, xp, level, loading } = useAuth() as any;
 
   if (loading) {
     return <div className="min-h-screen bg-black flex items-center justify-center text-gold-500">Loading DevVerse...</div>;
@@ -25,7 +25,7 @@ export default function Dashboard() {
           <h1 className="text-4xl font-display font-bold mb-4">DevVerse</h1>
           <p className="text-gray-400 mb-8 max-w-sm mx-auto">The ultimate programming ecosystem. Master code with project-based learning and an offline-first PWA environment.</p>
           <button 
-            onClick={() => useAuth().signInWithGoogle()}
+            onClick={signInWithGoogle}
             className="w-full bg-white text-black font-bold py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-3"
           >
             <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
@@ -74,7 +74,7 @@ export default function Dashboard() {
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-white/5 group cursor-pointer relative" onClick={() => useAuth().logout()}>
+        <div className="p-4 border-t border-white/5 group cursor-pointer relative" onClick={logout}>
           <div className="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
           <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-gold-500/20 to-transparent border border-gold-500/20 group-hover:border-red-500/30 transition-colors">
             <div className="flex items-center gap-3">
