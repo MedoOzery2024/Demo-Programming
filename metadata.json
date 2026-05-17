@@ -1,0 +1,8 @@
+{
+  "name": "Demo Programming",
+  "description": "Next-generation PWA programming education platform with interactive coding, gamification, and real-world projects.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

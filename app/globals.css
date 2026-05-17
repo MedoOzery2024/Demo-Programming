@@ -1,0 +1,55 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --color-gold-300: #FDE68A;
+  --color-gold-400: #FBBF24;
+  --color-gold-500: #F59E0B;
+  --color-gold-600: #D97706;
+  
+  --color-dark-900: #0A0A0A;
+  --color-dark-800: #141414;
+  --color-dark-700: #1F1F1F;
+}
+
+@layer base {
+  :root {
+    --bg-main: var(--color-dark-900);
+    --bg-secondary: var(--color-dark-800);
+    --text-main: #FAFAFA;
+    --text-muted: #A3A3A3;
+    --accent: var(--color-gold-500);
+    --accent-glow: rgba(245, 158, 11, 0.2);
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: var(--font-sans), sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-gold {
+    background: rgba(245, 158, 11, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .border-glow {
+    box-shadow: 0 0 15px var(--accent-glow);
+  }
+}
