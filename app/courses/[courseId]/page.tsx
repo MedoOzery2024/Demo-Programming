@@ -2,11 +2,12 @@
 
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import { ArrowLeft, Play, PlayCircle, CheckCircle2, Lock, Code2, Database, Layout } from 'lucide-react';
-import { use, useEffect, useState } from 'react';
+import { ArrowLeft, PlayCircle, CheckCircle2, Lock, Code2, Database, Layout, Edit3 } from 'lucide-react';
+import { use, useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { COURSES } from '@/lib/data';
+import RichTextEditor from '@/components/Editor';
 
 const MOCK_MODULES = [
   { id: 'm1', title: 'System Architecture & Routing', icon: Layout, lessons: [
@@ -18,10 +19,6 @@ const MOCK_MODULES = [
     { id: 'l4', title: 'React 19 use() Hook', duration: '15 min' },
     { id: 'l5', title: 'Server Actions for Form Submissions', duration: '22 min' },
   ]},
-  { id: 'm3', title: 'Database Integration', icon: Database, lessons: [
-    { id: 'l6', title: 'Setting up Firebase / Supabase', duration: '30 min' },
-    { id: 'l7', title: 'Designing the Schema', duration: '20 min' },
-  ]}
 ];
 
 export default function CourseDetails({ params }: { params: Promise<{ courseId: string }> }) {
@@ -32,6 +29,8 @@ export default function CourseDetails({ params }: { params: Promise<{ courseId: 
 
   const [completedLessons, setCompletedLessons] = useState<string[]>(['l1']);
   const [activeTab, setActiveTab] = useState<'curriculum' | 'overview'>('curriculum');
+  const [isEditing, setIsEditing] = useState(false);
+  const [overviewContent, setOverviewContent] = useState(`<h3>Course Overview</h3><p>${course.overview}</p><ul><li>Build real world applications</li><li>Master the core concepts</li></ul>`);
 
   let isNextUnlocked = true;
 
@@ -56,28 +55,39 @@ export default function CourseDetails({ params }: { params: Promise<{ courseId: 
           </div>
           <h1 className="text-4xl md:text-6xl font-display font-bold mb-6">{course.title}</h1>
           <p className="text-xl text-gray-400 leading-relaxed max-w-3xl mb-8">
-            {course.overview}
+             Master software engineering by completing realistic projects.
           </p>
 
-          <div className="flex gap-4 border-b border-white/5">
-            <button 
-              onClick={() => setActiveTab('curriculum')}
-              className={`pb-4 px-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'curriculum' ? 'border-gold-500 text-gold-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-            >
-              Curriculum & Workspace
-            </button>
-            <button 
-              onClick={() => setActiveTab('overview')}
-              className={`pb-4 px-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'overview' ? 'border-gold-500 text-gold-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-            >
-              System Overview
-            </button>
+          <div className="flex justify-between border-b border-white/5">
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setActiveTab('curriculum')}
+                className={`pb-4 px-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'curriculum' ? 'border-gold-500 text-gold-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+              >
+                Curriculum & Workspace
+              </button>
+              <button 
+                onClick={() => setActiveTab('overview')}
+                className={`pb-4 px-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'overview' ? 'border-gold-500 text-gold-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+              >
+                System Overview
+              </button>
+            </div>
+            {activeTab === 'overview' && (
+              <button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-2 pb-4 text-sm font-medium text-gold-500 hover:text-gold-400 transition-colors">
+                 <Edit3 size={16} /> {isEditing ? 'Save Content' : 'Edit Overview'}
+              </button>
+            )}
           </div>
         </header>
 
         {activeTab === 'overview' ? (
-          <motion.div initial={{opacity:0}} animate={{opacity:1}} className="prose prose-invert max-w-none glass p-8 rounded-2xl">
-            <Markdown remarkPlugins={[remarkGfm]}>{`### Course Overview\n\n${course.overview}\n\n#### Modules\n\nWe will build multiple projects through building different applications focusing on topics like APIs, components, routing, data, styling, and much more.`}</Markdown>
+          <motion.div initial={{opacity:0}} animate={{opacity:1}}>
+            {isEditing ? (
+               <RichTextEditor content={overviewContent} onChange={setOverviewContent} />
+            ) : (
+               <div className="prose prose-invert max-w-none glass p-8 rounded-2xl bg-[#0A0A0A]" dangerouslySetInnerHTML={{ __html: overviewContent }} />
+            )}
           </motion.div>
         ) : (
           <div className="flex flex-col gap-6">

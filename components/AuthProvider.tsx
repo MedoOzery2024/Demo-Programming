@@ -16,7 +16,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-// Using standard variables if doc is missing
 const calculateLevel = (xp: number) => Math.floor(xp / 1000) + 1;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -43,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
             setXp(0);
           } else {
-            setXp(userDoc.data().xp || 0);
+            setXp(userDoc.data()?.xp || 0);
           }
         } catch (error) {
           console.error("Error creating/fetching user profile:", error);
