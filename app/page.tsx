@@ -2,7 +2,7 @@
 
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import { ArrowRight, Code2, Terminal, Rocket, Layout, Database } from 'lucide-react';
+import { ArrowRight, Terminal, Layout, Database } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -42,10 +42,10 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-wrap items-center gap-4">
-            <Link href="/register" className="glass-gold text-gold-300 px-8 py-4 rounded-full font-semibold flex items-center gap-2 hover:bg-gold-500/10 transition-all border border-gold-500/50 hover:border-gold-400 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+            <Link href="/courses" className="glass-gold text-gold-300 px-8 py-4 rounded-full font-semibold flex items-center gap-2 hover:bg-gold-500/10 transition-all border border-gold-500/50 hover:border-gold-400 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)]">
               Start Learning Now <ArrowRight size={18} />
             </Link>
-            <Link href="/curriculum" className="glass text-white px-8 py-4 rounded-full font-semibold flex items-center gap-2 hover:bg-white/5 transition-all">
+            <Link href="/courses" className="glass text-white px-8 py-4 rounded-full font-semibold flex items-center gap-2 hover:bg-white/5 transition-all">
               View Curriculum
             </Link>
           </div>

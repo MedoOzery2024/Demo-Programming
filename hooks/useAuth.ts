@@ -26,7 +26,6 @@ export const useAuth = create<AuthState>((set, get) => ({
       if (user) {
         set({ user, loading: true });
         
-        // Fetch or create user profile
         try {
           const userRef = doc(db, 'users', user.uid);
           const docSnap = await getDoc(userRef);
@@ -34,7 +33,6 @@ export const useAuth = create<AuthState>((set, get) => ({
           if (docSnap.exists()) {
             set({ profile: docSnap.data(), loading: false });
           } else {
-            // Create minimal user
             const newProfile = {
               email: user.email,
               displayName: user.displayName || user.email?.split('@')[0],

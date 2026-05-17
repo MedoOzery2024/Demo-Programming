@@ -115,7 +115,7 @@ export default function InteractiveIDE() {
             </div>
             <div className="flex-1 p-4 overflow-y-auto font-mono text-sm">
               {output ? (
-                <pre className="text-gray-300 whitespace-pre-wrap">{output}</pre>
+                 <pre className="text-gray-300 whitespace-pre-wrap">{output}</pre>
               ) : (
                 <span className="text-gray-600">Output will appear here...</span>
               )}
