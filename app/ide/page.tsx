@@ -1,306 +1,342 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
-import { motion } from 'motion/react';
-import { ArrowLeft, Play, Check, TerminalSquare, Info, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Play, Square, TerminalSquare, Info, Folder, FileCode, SplitSquareHorizontal, LayoutTemplate, Settings, X, Plus } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { useAuth } from '../../hooks/useAuth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
-import { handleFirestoreError, OperationType } from '../../lib/firestore-error';
+import { useSearchParams } from 'next/navigation';
 
-// Hardcoded mock data to simulate courses lookup
-const MOCK_COURSES: Record<string, any> = {
-  'react-mastery': {
-    title: 'React 19 & Next.js 15 Mastery',
-    modules: [
-      { id: 'm1', lessons: [
-        { id: 'l1', title: 'Introduction to App Router', content: '# Introduction\n\nWelcome to the first lesson! Create a function that prints "App Router!".\n\n```javascript\nfunction run() {\n  return "App Router!";\n}\n```', seedCode: 'function run() {\n  // Write code here\n  \n}\nconsole.log(run());', expectedOutput: 'App Router!' },
-        { id: 'l2', title: 'Server vs Client Components', content: '# Server vs Client\n\nCreate a component name constant.\n\n```javascript\nconst component = "Server Component";\nconsole.log(component);\n```', seedCode: 'const component = "";\nconsole.log(component);', expectedOutput: 'Server Component' },
-        { id: 'l3', title: 'Data Fetching Mastery', content: '# Data Fetching\n\nFetch some data.\n\n```javascript\nconsole.log("Data fetched!");\n```', seedCode: 'console.log("Data fetched!");', expectedOutput: 'Data fetched!' }
-      ]},
-    ]
+interface FileNode {
+  name: string;
+  language: string;
+  content: string;
+  isOpen?: boolean;
+}
+
+const DEFAULT_FILES: Record<string, FileNode> = {
+  'index.html': {
+    name: 'index.html',
+    language: 'html',
+    content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <h1>Hello World</h1>
+    <button id="btn">Click Me</button>
+    <div id="result"></div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>`
+  },
+  'style.css': {
+    name: 'style.css',
+    language: 'css',
+    content: `body {
+  font-family: system-ui, sans-serif;
+  background: #111;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+button {
+  background: #F59E0B;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+button:hover { background: #FBBF24; }`
+  },
+  'script.js': {
+    name: 'script.js',
+    language: 'javascript',
+    content: `let count = 0;
+const btn = document.getElementById('btn');
+const result = document.getElementById('result');
+
+btn.addEventListener('click', () => {
+  count++;
+  result.textContent = \`Clicked \${count} times\`;
+  console.log('Button clicked', count);
+});
+
+console.log('App initialized');`
   }
 };
 
-function IDEContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const courseId = searchParams.get('courseId') || 'react-mastery';
-  const lessonId = searchParams.get('lessonId') || 'l1';
-  
-  const { user, profile } = useAuth();
-  
-  const [code, setCode] = useState('// Loading...\n');
-  const [output, setOutput] = useState<string>('');
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+function IDEWorkspace() {
+  const [files, setFiles] = useState<Record<string, FileNode>>(DEFAULT_FILES);
+  const [activeFile, setActiveFile] = useState<string>('index.html');
+  const [output, setOutput] = useState<{level: string, text: string}[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  const courseData = MOCK_COURSES[courseId];
-  let currentLesson = null;
-  let prevLesson = null;
-  let nextLesson = null;
   
-  if (courseData) {
-    const allLessons = courseData.modules.flatMap((m: any) => m.lessons);
-    const lessonIndex = allLessons.findIndex((l: any) => l.id === lessonId);
-    if (lessonIndex !== -1) {
-      currentLesson = allLessons[lessonIndex];
-      prevLesson = lessonIndex > 0 ? allLessons[lessonIndex - 1] : null;
-      nextLesson = lessonIndex < allLessons.length - 1 ? allLessons[lessonIndex + 1] : null;
-    }
-  }
+  // Tabs management
+  const openTabs = Object.keys(files).filter(k => files[k].isOpen !== false);
+
+  const monaco = useMonaco();
 
   useEffect(() => {
-    if (currentLesson) {
-      setCode(currentLesson.seedCode);
-      setOutput('');
-      setIsSuccess(false);
+    if (monaco) {
+      monaco.editor.defineTheme('devverse-dark', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [
+          { token: 'keyword', foreground: 'F59E0B' },
+          { token: 'comment', foreground: 'A3A3A3', fontStyle: 'italic' },
+          { token: 'string', foreground: '34D399' },
+        ],
+        colors: {
+          'editor.background': '#0A0A0A',
+          'editor.lineHighlightBackground': '#1A1A1A',
+          'editorLineNumber.foreground': '#525252',
+          'editorIndentGuide.background': '#262626',
+        }
+      });
     }
-  }, [lessonId]);
+  }, [monaco]);
 
-  const handleEditorWillMount = (monaco: any) => {
-    monaco.editor.defineTheme('demo-gold', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [
-        { token: 'keyword', foreground: 'F59E0B' }, // gold-500
-        { token: 'comment', foreground: 'A3A3A3', fontStyle: 'italic' },
-        { token: 'string', foreground: '34D399' },
-        { token: 'identifier', foreground: 'FAFAFA' },
-      ],
-      colors: {
-        'editor.background': '#0A0A0A',
-        'editor.lineHighlightBackground': '#141414',
-        'editorLineNumber.foreground': '#525252',
-        'editorIndentGuide.background': '#262626',
-        'editorSuggestWidget.background': '#141414',
-        'editorSuggestWidget.border': '#F59E0B',
-      }
-    });
+  const handleEditorChange = (value: string | undefined) => {
+    if (value !== undefined) {
+      setFiles(prev => ({
+        ...prev,
+        [activeFile]: { ...prev[activeFile], content: value }
+      }));
+    }
   };
 
   const runCode = () => {
-    if (!iframeRef.current) return;
-    setOutput('');
-    setIsSuccess(false);
+    setIsRunning(true);
+    setOutput([]);
     
-    // Create an iframe to safely execute JS
-    const html = `
+    // Combine HTML, CSS, JS
+    const html = files['index.html']?.content || '';
+    const css = files['style.css']?.content || '';
+    const js = files['script.js']?.content || '';
+
+    // Create execution environment
+    const srcDoc = `
       <!DOCTYPE html>
       <html>
         <head>
+          <style>\${css}</style>
           <script>
-            window.onerror = function(msg, url, lineNo, columnNo, error) {
-              window.parent.postMessage({ type: 'error', message: msg }, '*');
-              return false;
-            };
-            const originalConsoleLog = console.log;
+            // Intercept console
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
+            
             console.log = function(...args) {
-              const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-              originalConsoleLog.apply(console, args);
-              window.parent.postMessage({ type: 'log', message: msg }, '*');
+              window.parent.postMessage({ type: 'log', level: 'info', args: args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)) }, '*');
+              originalLog.apply(console, args);
+            };
+            console.error = function(...args) {
+              window.parent.postMessage({ type: 'log', level: 'error', args: args.map(a => String(a)) }, '*');
+              originalError.apply(console, args);
+            };
+            
+            window.onerror = function(msg, url, line, col, error) {
+              window.parent.postMessage({ type: 'log', level: 'error', args: [\`\${msg} (Line \${line})\`] }, '*');
+              return false;
             };
           </script>
         </head>
         <body>
+          \${html}
           <script>
             try {
-              ${code}
-            } catch (e) {
-              window.parent.postMessage({ type: 'error', message: e.message }, '*');
+              \${js}
+            } catch(e) {
+              console.error(e.message);
             }
           </script>
         </body>
       </html>
     `;
 
-    iframeRef.current.srcdoc = html;
+    if (iframeRef.current) {
+      iframeRef.current.srcdoc = srcDoc;
+    }
+  };
+
+  const stopCode = () => {
+    setIsRunning(false);
+    if (iframeRef.current) {
+      iframeRef.current.srcdoc = '';
+    }
+    setOutput(prev => [...prev, { level: 'system', text: '[Execution Stopped]' }]);
   };
 
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
-      // Validate origin if not srcdoc, but srcdoc has 'null' origin usually
       if (e.data && e.data.type === 'log') {
-        setOutput((prev) => prev + e.data.message + '\n');
-        if (currentLesson && currentLesson.expectedOutput && e.data.message.includes(currentLesson.expectedOutput)) {
-          setIsSuccess(true);
-        } else if (!currentLesson?.expectedOutput) {
-          // If no expected output, just running successfully is a win
-          setIsSuccess(true);
-        }
-      } else if (e.data && e.data.type === 'error') {
-        setOutput((prev) => prev + 'Error: ' + e.data.message + '\n');
+        setOutput(prev => [...prev, { level: e.data.level, text: e.data.args.join(' ') }]);
       }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [currentLesson]);
-
-  const submitProgress = async () => {
-    if (!user || !isSuccess) return;
-    
-    setIsSubmitting(true);
-    const progressId = `${user.uid}_${courseId}`;
-    try {
-      const ref = doc(db, 'progress', progressId);
-      const snap = await getDoc(ref);
-      
-      let completed = [lessonId];
-      if (snap.exists()) {
-        const data = snap.data();
-        completed = Array.from(new Set([...(data.completedLessons || []), lessonId]));
-      }
-
-      await setDoc(ref, {
-        userId: user.uid,
-        courseId,
-        completedLessons: completed,
-        updatedAt: Date.now()
-      });
-
-      if (nextLesson) {
-        router.push(`/ide?courseId=${courseId}&lessonId=${nextLesson.id}`);
-      } else {
-        router.push(`/courses/${courseId}`);
-      }
-    } catch (e) {
-      handleFirestoreError(e, OperationType.UPDATE, 'progress');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (!currentLesson) {
-    return <div className="h-screen w-full flex items-center justify-center bg-dark-900 border text-white">Lesson not found</div>;
-  }
+  }, []);
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#0A0A0A]">
-      <iframe ref={iframeRef} sandbox="allow-scripts" style={{ display: 'none' }} title="sandbox" />
+    <div className="flex h-screen w-full bg-[#0A0A0A] text-gray-300 font-sans overflow-hidden">
       
-      {/* IDE Header */}
-      <header className="h-14 border-b border-white/10 flex items-center justify-between px-4 bg-[#141414] shrink-0">
-        <div className="flex items-center gap-4">
-          <Link href={`/courses/${courseId}`} className="text-gray-400 hover:text-white transition-colors">
-            <ArrowLeft size={18} />
-          </Link>
-          <div className="h-4 w-[1px] bg-white/20"></div>
-          <span className="text-sm font-medium text-gray-300">{currentLesson.title}</span>
+      {/* Sidebar / Explorer */}
+      <div className="w-64 border-r border-white/5 bg-[#0f0f0f] flex flex-col flex-shrink-0">
+        <div className="h-12 border-b border-white/5 flex items-center px-4 justify-between bg-black">
+          <span className="font-semibold text-sm tracking-wide text-gray-200">EXPLORER</span>
         </div>
+        <div className="p-2 flex-1 overflow-y-auto">
+          <div className="flex items-center gap-2 px-2 py-1 text-sm font-medium text-gray-400 hover:text-white cursor-pointer group">
+            <Folder size={14} className="group-hover:text-gold-500 transition-colors" /> src
+          </div>
+          <div className="pl-4 flex flex-col mt-1">
+            {Object.values(files).map((file) => (
+              <div 
+                key={file.name}
+                onClick={() => setActiveFile(file.name)}
+                className={`flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded-md transition-colors ${activeFile === file.name ? 'bg-gold-500/10 text-gold-400' : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'}`}
+              >
+                <FileCode size={14} /> {file.name}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Editor Area */}
+      <div className="flex-1 flex flex-col min-w-0">
         
-        <div className="flex flex-1 justify-center gap-2">
-          {prevLesson && (
-            <Link href={`/ide?courseId=${courseId}&lessonId=${prevLesson.id}`} className="px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-gray-400 text-xs flex items-center gap-1">
-              <ChevronLeft size={14} /> Prev
-            </Link>
-          )}
-          {nextLesson && (
-            <Link href={`/ide?courseId=${courseId}&lessonId=${nextLesson.id}`} className="px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-gray-400 text-xs flex items-center gap-1">
-              Next <ChevronRight size={14} />
-            </Link>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={runCode}
-            className="flex items-center gap-2 px-4 py-1.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 rounded-md text-sm font-medium transition-colors"
-          >
-            <Play size={14} /> Run
-          </button>
+        {/* Top Navbar & Tabs */}
+        <div className="h-12 bg-[#141414] border-b border-white/5 flex items-center justify-between pr-4">
+          <div className="flex h-full">
+            {openTabs.map(tab => (
+              <div 
+                key={tab} 
+                onClick={() => setActiveFile(tab)}
+                className={`flex items-center gap-3 px-4 h-full border-r border-white/5 text-sm cursor-pointer transition-colors ${activeFile === tab ? 'bg-[#0A0A0A] border-t-2 border-t-gold-500 text-gold-400' : 'bg-[#1a1a1a] text-gray-500 hover:bg-[#222]'}`}
+              >
+                <FileCode size={14} /> {tab}
+              </div>
+            ))}
+          </div>
           
-          <button 
-            onClick={submitProgress}
-            disabled={!isSuccess || isSubmitting || !user}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${
-              isSuccess ? 'bg-gold-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:bg-gold-400' : 'bg-white/5 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-            {isSuccess ? (nextLesson ? 'Next Lesson' : 'Complete Module') : 'Submit'}
-          </button>
+          <div className="flex items-center gap-3">
+            {isRunning ? (
+              <button onClick={stopCode} className="flex items-center gap-2 px-4 py-1.5 bg-red-500/20 text-red-500 hover:bg-red-500/30 rounded text-sm font-medium transition-colors">
+                <Square size={14} className="fill-current" /> Stop
+              </button>
+            ) : (
+              <button onClick={runCode} className="flex items-center gap-2 px-4 py-1.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded text-sm font-medium transition-colors">
+                <Play size={14} className="fill-current" /> Run
+              </button>
+            )}
+            <div className="w-[1px] h-4 bg-white/10 mx-1"></div>
+            <Link href="/" className="text-gray-500 hover:text-white transition-colors text-sm flex items-center gap-2">
+               Exit
+            </Link>
+          </div>
         </div>
-      </header>
 
-      {/* Main IDE area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Instruction Panel */}
-        <div className="w-[35%] min-w-[300px] border-r border-white/10 flex flex-col bg-[#0f0f0f]">
-          <div className="p-6 overflow-y-auto flex-1 prose prose-invert prose-gold max-w-none">
-            <div className="inline-flex items-center gap-2 px-2 py-1 rounded bg-blue-500/10 text-blue-400 text-xs font-semibold uppercase tracking-wider mb-6 border border-blue-500/20 not-prose">
-              <Info size={12} /> Instructions
+        {/* Editor & Preview Split */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Code Editor */}
+          <div className="flex-[3] flex flex-col border-r border-white/5">
+            <div className="flex-1 relative">
+              <Editor
+                height="100%"
+                language={files[activeFile]?.language || 'plaintext'}
+                value={files[activeFile]?.content || ''}
+                onChange={handleEditorChange}
+                theme="devverse-dark"
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  fontFamily: "var(--font-mono)",
+                  padding: { top: 20 },
+                  scrollBeyondLastLine: false,
+                  smoothScrolling: true,
+                  cursorBlinking: 'smooth',
+                  cursorWidth: 2,
+                  renderLineHighlight: 'all',
+                  wordWrap: 'on'
+                }}
+              />
             </div>
             
-            <Markdown remarkPlugins={[remarkGfm]}>
-              {currentLesson.content}
-            </Markdown>
-
-            {!user && (
-              <div className="mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm flex items-center gap-2 not-prose">
-                <Info size={16} /> Sign in to save progress
+            {/* Terminal */}
+            <div className="h-48 border-t border-white/5 bg-[#0f0f0f] flex flex-col">
+              <div className="h-8 border-b border-white/5 flex items-center px-4 bg-[#141414]">
+                <span className="flex items-center gap-2 text-xs font-mono text-gray-400 uppercase tracking-wider">
+                  <TerminalSquare size={12} /> Console
+                </span>
+                <div className="flex-1"></div>
+                <button onClick={() => setOutput([])} className="text-xs text-gray-500 hover:text-white">Clear</button>
               </div>
-            )}
+              <div className="flex-1 p-2 overflow-y-auto font-mono text-sm">
+                {output.length === 0 ? (
+                  <div className="text-gray-600 px-2 py-1">Ready...</div>
+                ) : (
+                  output.map((out, i) => (
+                    <div key={i} className={`px-2 py-0.5 ${out.level === 'error' ? 'text-red-400' : out.level === 'system' ? 'text-gold-500' : 'text-gray-300'}`}>
+                      {out.text}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Live Preview */}
+          <div className="flex-[2] bg-white flex flex-col">
+            <div className="h-8 bg-black border-b border-white/5 flex items-center px-4 justify-between shrink-0">
+               <span className="text-xs font-medium text-gray-400 flex items-center gap-2">
+                 <LayoutTemplate size={12} /> Preview
+               </span>
+               <div className="flex gap-1.5 items-center">
+                 <div className="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
+                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
+                 <div className="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
+               </div>
+            </div>
+            <div className="flex-1 relative bg-white">
+              {isRunning ? (
+                <iframe 
+                  ref={iframeRef}
+                  className="w-full h-full border-none"
+                  sandbox="allow-scripts allow-modals"
+                  title="Live Preview"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100 flex-col gap-4 text-gray-400">
+                  <Play size={48} className="opacity-20" />
+                  <p className="font-medium">Click Run to execute code</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Editor & Terminal Panel */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 relative">
-            <Editor
-              height="100%"
-              defaultLanguage="javascript"
-              value={code}
-              onChange={(value) => setCode(value || '')}
-              beforeMount={handleEditorWillMount}
-              theme="demo-gold"
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                fontFamily: "var(--font-mono)",
-                padding: { top: 20 },
-                scrollBeyondLastLine: false,
-                smoothScrolling: true,
-                cursorBlinking: 'smooth',
-                cursorWidth: 2,
-                renderLineHighlight: 'all',
-              }}
-            />
-          </div>
-          
-          {/* Terminal */}
-          <div className="h-[30%] min-h-[200px] border-t border-white/10 bg-[#0A0A0A] flex flex-col">
-            <div className="h-10 border-b border-white/5 flex items-center justify-between px-4 bg-[#141414]">
-              <span className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-gray-500">
-                <TerminalSquare size={14} /> Console
-              </span>
-              {output && (
-                <button onClick={() => setOutput('')} className="text-xs text-gray-500 hover:text-white transition-colors">Clear</button>
-              )}
-            </div>
-            <div className="flex-1 p-4 overflow-y-auto font-mono text-sm leading-relaxed">
-              {output ? (
-                 <pre className="text-gray-300 whitespace-pre-wrap">{output}</pre>
-              ) : (
-                <span className="text-gray-600">Output will appear here...</span>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
 }
 
-export default function InteractiveIDE() {
+export default function IDEPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-dark-900 flex items-center justify-center text-white"><Loader2 className="animate-spin text-gold-500" size={32} /></div>}>
-      <IDEContent />
+    <Suspense fallback={<div className="h-screen bg-black flex items-center justify-center text-gold-500">Loading IDE...</div>}>
+      <IDEWorkspace />
     </Suspense>
   );
 }
