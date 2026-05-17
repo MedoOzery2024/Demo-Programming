@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
-import { Play, Square, TerminalSquare, Info, Folder, FileCode, SplitSquareHorizontal, LayoutTemplate, Settings, X, Plus } from 'lucide-react';
+import { Play, Square, TerminalSquare, Info, Folder, FileCode, LayoutTemplate, Settings, X, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 
 interface FileNode {
   name: string;
@@ -131,7 +130,7 @@ function IDEWorkspace() {
       <!DOCTYPE html>
       <html>
         <head>
-          <style>\${css}</style>
+          <style>${css}</style>
           <script>
             // Intercept console
             const originalLog = console.log;
@@ -154,10 +153,10 @@ function IDEWorkspace() {
           </script>
         </head>
         <body>
-          \${html}
+          ${html}
           <script>
             try {
-              \${js}
+              ${js}
             } catch(e) {
               console.error(e.message);
             }

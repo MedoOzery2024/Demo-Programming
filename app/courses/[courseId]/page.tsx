@@ -2,79 +2,61 @@
 
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import { ArrowLeft, PlayCircle, CheckCircle2, Lock, Loader2, Code2, Database, Layout } from 'lucide-react';
+import { ArrowLeft, Play, PlayCircle, CheckCircle2, Lock, Code2, Database, Layout } from 'lucide-react';
 import { use, useEffect, useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { COURSES } from '@/lib/data';
 
-// Mock data for enterprise projects
-const course = {
-  id: 'react-mastery',
-  title: 'React 19 & Next.js 15 Mastery',
-  description: 'Build a production-grade enterprise dashboard. Learn server components, advanced routing, caching, and secure authentication.',
-  overview: `
-### The Enterprise Dashboard Project
-You will build a complete, real-world data dashboard exactly like what tech companies use internally. 
-
-#### What you will master:
-- **React 19 Architecture:** Server Components, Actions, useTransitions
-- **Next.js 15 App Router:** Advanced file-based routing and middleware
-- **Data Layer:** Securely integrating Firebase & PostgreSQL
-- **UI/UX Engineering:** Tailwind CSS, Framer Motion, and accessible components
-
-#### Real-world Systems Included:
-- Role-based Access Control (RBAC)
-- Real-time Analytics Engine
-- File Uploads & Cloud Storage
-- Export to PDF / CSV
-`,
-  xpReward: 5000,
-  modules: [
-    { id: 'm1', title: 'System Architecture & Routing', icon: Layout, lessons: [
-      { id: 'l1', title: 'App Router Basics & Layouts', duration: '12 min' },
-      { id: 'l2', title: 'Server vs Client Boundaries', duration: '18 min' },
-      { id: 'l3', title: 'Data Fetching Mastery', duration: '25 min' }
-    ]},
-    { id: 'm2', title: 'State Management & Mutations', icon: Code2, lessons: [
-      { id: 'l4', title: 'React 19 use() Hook', duration: '15 min' },
-      { id: 'l5', title: 'Server Actions for Form Submissions', duration: '22 min' },
-    ]},
-    { id: 'm3', title: 'Database Integration', icon: Database, lessons: [
-      { id: 'l6', title: 'Setting up Firebase / Supabase', duration: '30 min' },
-      { id: 'l7', title: 'Designing the Schema', duration: '20 min' },
-    ]}
-  ]
-};
+const MOCK_MODULES = [
+  { id: 'm1', title: 'System Architecture & Routing', icon: Layout, lessons: [
+    { id: 'l1', title: 'App Router Basics & Layouts', duration: '12 min' },
+    { id: 'l2', title: 'Server vs Client Boundaries', duration: '18 min' },
+    { id: 'l3', title: 'Data Fetching Mastery', duration: '25 min' }
+  ]},
+  { id: 'm2', title: 'State Management & Mutations', icon: Code2, lessons: [
+    { id: 'l4', title: 'React 19 use() Hook', duration: '15 min' },
+    { id: 'l5', title: 'Server Actions for Form Submissions', duration: '22 min' },
+  ]},
+  { id: 'm3', title: 'Database Integration', icon: Database, lessons: [
+    { id: 'l6', title: 'Setting up Firebase / Supabase', duration: '30 min' },
+    { id: 'l7', title: 'Designing the Schema', duration: '20 min' },
+  ]}
+];
 
 export default function CourseDetails({ params }: { params: Promise<{ courseId: string }> }) {
   const resolvedParams = use(params);
   const courseId = resolvedParams.courseId;
   
+  const course = COURSES.find(c => c.id === courseId) || COURSES[0];
+
   const [completedLessons, setCompletedLessons] = useState<string[]>(['l1']);
   const [activeTab, setActiveTab] = useState<'curriculum' | 'overview'>('curriculum');
 
   let isNextUnlocked = true;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
-      <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="min-h-screen bg-black text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gold-500/5 via-black to-black -z-10 pointer-events-none"></div>
+      
+      <div className="max-w-5xl mx-auto px-6 py-12">
         <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-white mb-8 transition-colors">
-          <ArrowLeft size={16} /> Dashboard
+          <ArrowLeft size={16} /> Back to Dashboard
         </Link>
         
-        <header className="mb-12 border-b border-white/10 pb-12">
-          <div className="flex gap-4 items-center mb-6">
-            <span className="px-3 py-1 rounded border border-gold-500/30 bg-gold-500/10 text-gold-400 text-xs uppercase tracking-widest font-semibold">
-              Enterprise Project
+        <header className="mb-12">
+          <div className="flex items-center gap-4 mb-4">
+            <span className="px-3 py-1 rounded bg-white/10 text-xs font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+               Project
             </span>
             <span className="px-3 py-1 rounded border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs uppercase tracking-widest font-semibold">
-              Advanced Level
+              {course.level} Level
             </span>
-            <span className="text-sm font-mono text-gray-500">+ {course.xpReward} XP</span>
+            <span className="text-sm font-mono text-gray-500">+ {course.xp} XP</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-display font-bold mb-6">{course.title}</h1>
           <p className="text-xl text-gray-400 leading-relaxed max-w-3xl mb-8">
-            {course.description}
+            {course.overview}
           </p>
 
           <div className="flex gap-4 border-b border-white/5">
@@ -95,11 +77,11 @@ export default function CourseDetails({ params }: { params: Promise<{ courseId: 
 
         {activeTab === 'overview' ? (
           <motion.div initial={{opacity:0}} animate={{opacity:1}} className="prose prose-invert max-w-none glass p-8 rounded-2xl">
-            <Markdown remarkPlugins={[remarkGfm]}>{course.overview}</Markdown>
+            <Markdown remarkPlugins={[remarkGfm]}>{`### Course Overview\n\n${course.overview}\n\n#### Modules\n\nWe will build multiple projects through building different applications focusing on topics like APIs, components, routing, data, styling, and much more.`}</Markdown>
           </motion.div>
         ) : (
           <div className="flex flex-col gap-6">
-            {course.modules.map((mod, i) => (
+            {MOCK_MODULES.map((mod, i) => (
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}

@@ -2,23 +2,44 @@
 
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import { Play, Code2, Award, Users, Search, FolderKanban, Map, Rocket, Trophy, Medal, Crown } from 'lucide-react';
+import Image from 'next/image';
+import { Play, Code2, Award, Users, Search, FolderKanban, Map, Rocket, Trophy, Medal, Crown, LogOut } from 'lucide-react';
 import { useState } from 'react';
-
-const COURSES = [
-  { id: 'react-mastery', title: 'React 19 & Next.js 15 Mastery', level: 'Intermediate', xp: 5000, color: 'from-blue-500/20 to-cyan-500/5', icon: Code2 },
-  { id: 'python-ai', title: 'Python AI Engineering', level: 'Advanced', xp: 8000, color: 'from-gold-500/20 to-yellow-500/5', icon: Rocket },
-  { id: 'fullstack-firebase', title: 'Full-Stack Firebase', level: 'Beginner', xp: 3000, color: 'from-orange-500/20 to-red-500/5', icon: FolderKanban },
-];
-
-const ROADMAPS = [
-  { title: 'Frontend Developer', progress: 45, total: 100 },
-  { title: 'Backend Developer', progress: 10, total: 100 },
-  { title: 'Full Stack Developer', progress: 0, total: 100 },
-];
+import { COURSES, ROADMAPS } from '@/lib/data';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
+  const { user, login, logout, xp, level, loading } = useAuth() as any;
+
+  if (loading) {
+    return <div className="min-h-screen bg-black flex items-center justify-center text-gold-500">Loading DevVerse...</div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gold-500/10 via-black to-black -z-10 pointer-events-none"></div>
+        <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} className="glass-gold p-12 rounded-3xl max-w-md w-full text-center border border-gold-500/20">
+          <Image src="/logo.png" alt="DevVerse Logo" width={80} height={80} className="mx-auto mb-6 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.2)]" />
+          <h1 className="text-4xl font-display font-bold mb-4">DevVerse</h1>
+          <p className="text-gray-400 mb-8 max-w-sm mx-auto">The ultimate programming ecosystem. Master code with project-based learning and an offline-first PWA environment.</p>
+          <button 
+            onClick={() => useAuth().signInWithGoogle()}
+            className="w-full bg-white text-black font-bold py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-3"
+          >
+            <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+              <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+              <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+              <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.519-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+              <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+            </svg>
+            Continue with Google
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-black overflow-hidden font-sans text-gray-200">
@@ -27,7 +48,7 @@ export default function Dashboard() {
       <aside className="w-64 glass border-r border-white/5 flex flex-col hidden md:flex">
         <div className="h-20 flex items-center px-8 border-b border-white/5 shrink-0">
            <div className="flex items-center gap-3">
-             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center text-black font-bold text-xl">D</div>
+             <Image src="/logo.png" alt="DevVerse Logo" width={32} height={32} className="rounded-lg shadow-[0_0_15px_rgba(245,158,11,0.3)]" />
              <span className="font-display font-bold text-xl tracking-tight text-white">DevVerse</span>
            </div>
         </div>
@@ -51,19 +72,20 @@ export default function Dashboard() {
           <Link href="/community" className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
              <Users size={18} /> Community
           </Link>
-          <Link href="/certificates" className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
-             <Award size={18} /> Certificates
-          </Link>
         </nav>
 
-        <div className="p-4 border-t border-white/5">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-gold-500/20 to-transparent border border-gold-500/20">
-            <div className="w-10 h-10 rounded-full bg-gold-500/20 flex items-center justify-center text-gold-400">
-               <Crown size={20} />
-            </div>
-            <div>
-              <div className="text-sm font-bold text-white">Mahmoud</div>
-              <div className="text-xs text-gold-400 font-medium font-mono">Level 42</div>
+        <div className="p-4 border-t border-white/5 group cursor-pointer relative" onClick={() => useAuth().logout()}>
+          <div className="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
+          <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-gold-500/20 to-transparent border border-gold-500/20 group-hover:border-red-500/30 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gold-500/20 flex items-center justify-center text-gold-400 overflow-hidden">
+                {user.photoURL ? <Image src={user.photoURL} alt={user.displayName || "User"} width={40} height={40} /> : <Crown size={20} />}
+              </div>
+              <div>
+                <div className="text-sm font-bold text-white max-w-[100px] truncate">{user.displayName || "Developer"}</div>
+                <div className="text-xs text-gold-400 font-medium font-mono group-hover:hidden delay-100">Level {level}</div>
+                <div className="text-xs text-red-400 font-medium font-mono hidden group-hover:flex items-center gap-1"><LogOut size={12} /> Logout</div>
+              </div>
             </div>
           </div>
         </div>
@@ -88,9 +110,8 @@ export default function Dashboard() {
           
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-500/10 border border-gold-500/20 text-gold-400 font-mono text-sm">
-               <Medal size={16} /> 12,450 XP
+               <Medal size={16} /> {xp.toLocaleString()} XP
             </div>
-            <button className="text-sm font-medium hover:text-white transition-colors">Admin</button>
           </div>
         </header>
 
@@ -103,15 +124,15 @@ export default function Dashboard() {
                 <div className="relative z-10 md:w-2/3">
                   <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4">Master Software Engineering</h1>
                   <p className="text-lg text-gray-300 mb-8 max-w-xl">
-                    Build real-world applications in an offline-first PWA environment. Complete enterprise projects, earn XP, and become a top developer.
+                    Welcome back, {user.displayName?.split(' ')[0] || 'Developer'}! Build real-world applications in an offline-first PWA environment. Complete enterprise projects, earn XP, and become a top developer.
                   </p>
                   <div className="flex gap-4">
-                    <Link href="/ide" className="px-6 py-3 rounded-full bg-gold-500 text-black font-bold hover:bg-gold-400 transition-colors flex items-center gap-2">
-                       <Code2 size={18} /> Enter IDE Workspace
+                    <Link href="/ide" className="px-6 py-3 rounded-full bg-gold-500 text-black font-bold hover:bg-gold-400 transition-colors flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+                       <Code2 size={18} /> Open Workspace
                     </Link>
-                    <button className="px-6 py-3 rounded-full bg-white/10 text-white font-semibold hover:bg-white/20 transition-colors">
+                    <Link href="/roadmaps" className="px-6 py-3 rounded-full bg-white/10 text-white font-semibold hover:bg-white/20 transition-colors hidden sm:flex items-center">
                        View Roadmap
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </motion.div>
@@ -122,10 +143,9 @@ export default function Dashboard() {
               <section className="lg:col-span-2">
                 <div className="flex justify-between items-end mb-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-white mb-1">Project-Based Learning</h2>
-                    <p className="text-sm text-gray-400">Real projects. Real databases. Real deployment.</p>
+                    <h2 className="text-2xl font-bold text-white mb-1">Project-Based Curriculums</h2>
+                    <p className="text-sm text-gray-400">Complete tutorials and realistic software projects.</p>
                   </div>
-                  <button className="text-sm text-gold-400 hover:text-gold-300 font-medium">View All</button>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -134,19 +154,20 @@ export default function Dashboard() {
                       key={course.id}
                       initial={{opacity:0, y:20}} 
                       animate={{opacity:1, y:0}} 
-                      transition={{delay: 0.1 * i}}
-                      className="glass rounded-2xl p-6 hover:bg-white/5 transition-all group border border-white/5 hover:border-gold-500/30 cursor-pointer"
+                      transition={{delay: 0.05 * i}}
+                      className="glass rounded-2xl p-6 hover:bg-white/5 transition-all group border border-white/5 hover:border-gold-500/30 cursor-pointer h-full flex flex-col"
                     >
                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${course.color} flex items-center justify-center mb-6`}>
                         <course.icon size={24} className="text-white opacity-80" />
                       </div>
                       <h3 className="text-lg font-bold text-white mb-2">{course.title}</h3>
-                      <div className="flex items-center gap-3 text-sm text-gray-400 mb-6">
+                      <p className="text-sm text-gray-400 line-clamp-2 mb-4 flex-1">{course.overview}</p>
+                      <div className="flex items-center gap-3 text-sm text-gray-400 mb-6 mt-auto">
                         <span className="px-2 py-0.5 rounded bg-white/10 uppercase tracking-widest text-[10px] font-bold">
                           {course.level}
                         </span>
-                        <span className="font-mono flex items-center gap-1">
-                          <Crown size={12} className="text-gold-500" /> {course.xp} XP
+                        <span className="font-mono flex items-center gap-1 text-xs">
+                          <Crown size={12} className="text-gold-500" /> {course.xp}
                         </span>
                       </div>
                       <Link href={`/courses/${course.id}`} className="flex items-center gap-2 text-sm font-medium text-gold-400 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
@@ -182,14 +203,17 @@ export default function Dashboard() {
 
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-6">Daily Challenges</h2>
-                  <div className="glass rounded-2xl p-6 border border-gold-500/20 bg-gold-500/5">
-                    <h4 className="font-bold text-white mb-2 flex items-center gap-2">
-                      <Rocket size={16} className="text-gold-500" /> API Architecture
-                    </h4>
-                    <p className="text-sm text-gray-400 mb-4">Design a scalable REST API using Next.js Route Handlers and proper error handling.</p>
-                    <button className="w-full py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors">
-                      Accept Challenge
-                    </button>
+                  <div className="glass rounded-2xl p-6 border border-gold-500/20 bg-gold-500/5 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/10 blur-3xl rounded-full group-hover:bg-gold-500/20 transition-colors"></div>
+                    <div className="relative z-10">
+                      <h4 className="font-bold text-white mb-2 flex items-center gap-2">
+                        <Rocket size={16} className="text-gold-500" /> API Architecture
+                      </h4>
+                      <p className="text-sm text-gray-400 mb-4">Design a scalable REST API using Next.js Route Handlers and proper error handling.</p>
+                      <button className="w-full py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors border border-white/10">
+                        Accept Challenge
+                      </button>
+                    </div>
                   </div>
                 </div>
               </section>
