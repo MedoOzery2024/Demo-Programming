@@ -56,7 +56,8 @@ service cloud.firestore {
     match /progress/{progressId} {
       allow read: if isSignedIn() && existing().userId == request.auth.uid;
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidProgress(incoming()) && incoming().userId == request.auth.uid && exists(/databases/$(database)/documents/courses/$(incoming().courseId));
+      // Removed the 'exists' check for courses to allow frontend progress tracking without a CMS
+      allow create: if isSignedIn() && isValidProgress(incoming()) && incoming().userId == request.auth.uid;
       allow update: if isSignedIn() && isValidProgress(incoming()) && incoming().userId == request.auth.uid && incoming().userId == existing().userId && incoming().courseId == existing().courseId;
     }
   }
